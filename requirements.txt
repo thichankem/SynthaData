@@ -1,0 +1,14 @@
+# SynthaData - dependencies
+# HTTP client cho mọi provider (OpenAI / Anthropic / Ollama)
+requests>=2.31.0
+# Đọc cấu hình domain + config
+PyYAML>=6.0.1
+# Nạp biến môi trường từ file .env (chứa API key)
+python-dotenv>=1.0.0
+# Thanh tiến trình
+tqdm>=4.66.0
+# Tính cosine theo lô cho chống trùng NGỮ NGHĨA (có fallback thuần Python nếu thiếu)
+numpy>=1.24.0
+# (Tuỳ chọn) so khớp gần đúng nhanh để phát hiện trùng lặp mờ.
+# Nếu không cài, hệ thống tự fallback sang difflib trong stdlib.
+rapidfuzz>=3.6.0

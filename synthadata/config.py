@@ -151,8 +151,9 @@ class OutputConfig:
 
 
 def _default_offline() -> ProviderConfig:
-    """Provider Ollama offline mặc định (dùng cho mode offline/hybrid/augment)."""
-    return ProviderConfig(type="ollama", model="qwen2.5-coder:7b")
+    """Provider Ollama offline mặc định (dùng cho mode offline/hybrid/augment).
+    Model GENERAL cho nội dung tự nhiên tốt hơn model coding/reasoning."""
+    return ProviderConfig(type="ollama", model="gemma4:e4b")
 
 
 @dataclass

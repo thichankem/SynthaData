@@ -357,9 +357,11 @@ class SynthaDataGUI:
                                      values=["ollama", "openai", "hashing", "none"], width=14)
         self.cb_embed.grid(row=1, column=1, sticky="w", **pad)
 
-        ttk.Label(g_e, text="Model embedding:").grid(row=1, column=2, sticky="e", **pad)
-        self.ent_embed_model = ttk.Entry(g_e, textvariable=self.v_embed_model)
-        self.ent_embed_model.grid(row=1, column=3, sticky="ew", **pad)
+        ttk.Label(g_e, text="Model kiểm tra trùng:").grid(row=1, column=2, sticky="e", **pad)
+        # Dropdown model dùng để CHỐNG TRÙNG (embedding) — liệt kê model Ollama đã
+        # cài + gợi ý các embedder tốt (vẫn gõ tay được).
+        self.cb_embed_model = ttk.Combobox(g_e, textvariable=self.v_embed_model)
+        self.cb_embed_model.grid(row=1, column=3, sticky="ew", **pad)
 
         ttk.Label(g_e, text="Host embedding:").grid(row=2, column=0, sticky="w", **pad)
         self.ent_embed_host = ttk.Entry(g_e, textvariable=self.v_embed_host)
@@ -467,7 +469,7 @@ class SynthaDataGUI:
     def _on_semantic_toggle(self) -> None:
         state = "normal" if self.v_semantic.get() else "disabled"
         self.cb_embed.configure(state="readonly" if self.v_semantic.get() else "disabled")
-        for w in (self.ent_embed_model, self.ent_embed_host):
+        for w in (self.cb_embed_model, self.ent_embed_host):
             w.configure(state=state)
 
     def _pick_domain(self) -> None:
@@ -764,6 +766,13 @@ class SynthaDataGUI:
         self.cb_offline_model.configure(values=names)
         if names and self.v_offline_model.get().strip() not in names:
             self.v_offline_model.set(names[0])
+        # Dropdown model KIỂM TRA TRÙNG (embedding): model đã cài + gợi ý embedder tốt
+        # (kể cả chưa cài, để người dùng biết mà `ollama pull`).
+        _embed_suggest = ["nomic-embed-text", "bge-m3", "mxbai-embed-large",
+                          "snowflake-arctic-embed2"]
+        _installed_bare = {n.split(":")[0] for n in names}
+        embed_values = names + [m for m in _embed_suggest if m not in _installed_bare]
+        self.cb_embed_model.configure(values=embed_values)
         if names:
             if self.v_model.get().strip() not in names:
                 self.v_model.set(names[0])

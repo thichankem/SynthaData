@@ -1,0 +1,139 @@
+# Domain mẫu: toàn bộ các bệnh trên thế giới + thông tin liên quan.
+# Đây là bộ dữ liệu y khoa MANG TÍNH GIÁO DỤC để train model, KHÔNG dùng
+# thay thế tư vấn y tế. Hãy kiểm chứng lại bằng nguồn chuyên môn trước khi dùng thật.
+
+name: diseases
+topic: >
+  Real human diseases and medical conditions from across the entire world,
+  spanning every category: infectious, genetic/hereditary, cardiovascular,
+  respiratory, neurological, autoimmune, endocrine/metabolic, oncological,
+  psychiatric, dermatological, gastrointestinal, musculoskeletal, renal,
+  ophthalmic, rare and tropical diseases. Cover common and rare conditions
+  from all regions of the world.
+
+language: tiếng việt         # đổi thành "Vietnamese" nếu muốn dữ liệu tiếng Việt
+dedup_key: disease_name    # cột dùng để chống trùng lặp
+
+# Cột ghép thành "chữ ký ngữ nghĩa" để nhúng vector -> bắt trùng ngữ nghĩa
+# (vd "Leprosy" và "Hansen's Disease" có mô tả giống nhau sẽ bị coi là một).
+semantic_fields: [disease_name, description]
+
+# Các lát cắt chủ đề -> luân phiên để bao phủ rộng, ít trùng.
+facets:
+  - Infectious and parasitic diseases (bacterial, viral, fungal, parasitic)
+  - Tropical and neglected tropical diseases
+  - Cardiovascular and circulatory diseases
+  - Respiratory diseases
+  - Neurological and neurodegenerative disorders
+  - Mental, behavioral and psychiatric disorders
+  - Cancers and neoplasms (by organ/system)
+  - Genetic, hereditary and congenital disorders
+  - Autoimmune and immune-mediated diseases
+  - Endocrine, nutritional and metabolic diseases
+  - Digestive and gastrointestinal diseases
+  - Kidney, urinary and reproductive system diseases
+  - Skin and subcutaneous tissue diseases
+  - Musculoskeletal and connective tissue diseases
+  - Eye, ear and sensory organ diseases
+  - Blood and blood-forming organ diseases
+  - Rare and orphan diseases
+
+columns:
+  - name: disease_name
+    description: Common medical name of the disease/condition.
+    type: text
+    required: true
+    min_len: 2
+    max_len: 120
+
+  - name: icd11_or_icd10_code
+    description: An approximate ICD-11 or ICD-10 classification code if applicable.
+    type: text
+    required: false
+    max_len: 20
+
+  - name: category
+    description: High-level category (e.g. infectious, genetic, cardiovascular...).
+    type: text
+    required: true
+    max_len: 60
+
+  - name: affected_system
+    description: Primary body system or organ affected.
+    type: text
+    required: true
+    max_len: 80
+
+  - name: description
+    description: One concise factual sentence describing the disease.
+    type: text
+    required: true
+    min_len: 20
+    max_len: 400
+
+  - name: common_symptoms
+    description: Key symptoms, separated by semicolons.
+    type: text
+    required: true
+    min_len: 5
+    max_len: 400
+
+  - name: causes
+    description: Main cause(s) or pathogen/mechanism.
+    type: text
+    required: true
+    max_len: 300
+
+  - name: risk_factors
+    description: Notable risk factors, separated by semicolons.
+    type: text
+    required: false
+    max_len: 300
+
+  - name: transmission
+    description: How it spreads, or "Non-communicable" if not transmissible.
+    type: text
+    required: true
+    max_len: 200
+
+  - name: diagnosis
+    description: Typical diagnostic methods/tests.
+    type: text
+    required: true
+    max_len: 300
+
+  - name: treatment
+    description: Standard treatment or management approach.
+    type: text
+    required: true
+    max_len: 300
+
+  - name: prevention
+    description: Prevention measures, or "None established" if not applicable.
+    type: text
+    required: false
+    max_len: 300
+
+  - name: severity
+    description: Overall typical severity.
+    type: enum
+    required: true
+    enum: ["mild", "moderate", "severe", "life-threatening", "variable"]
+
+  - name: is_contagious
+    description: Whether the disease is contagious.
+    type: enum
+    required: true
+    enum: ["yes", "no"]
+
+  - name: typical_age_group
+    description: Age group most affected (e.g. infants, children, adults, elderly, any).
+    type: text
+    required: true
+    max_len: 60
+
+  - name: global_prevalence
+    description: Rough prevalence (e.g. very common, common, uncommon, rare, very rare).
+    type: enum
+    required: true
+    enum: ["very common", "common", "uncommon", "rare", "very rare"]

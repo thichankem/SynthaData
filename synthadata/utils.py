@@ -164,10 +164,16 @@ def clean_text(value: Any) -> str:
     return value
 
 
+_KEY_PREFIX_RE = re.compile(r"^(?:dich\s+|chung\s+)?benh\s+")
+
+
 def normalize_key(value: str) -> str:
-    """Chuẩn hoá khoá để so trùng: bỏ dấu, hạ chữ thường, bỏ ký tự lạ."""
+    """Chuẩn hoá khoá để so trùng: bỏ dấu, hạ chữ thường, bỏ ký tự lạ, và bỏ tiền
+    tố chung 'bệnh' (rất hay gặp) để 'Bệnh sốt xuất huyết' và 'Sốt xuất huyết'
+    coi là MỘT -> tầng chống trùng tuyệt đối bắt được."""
     value = unicodedata.normalize("NFKD", value or "")
     value = "".join(ch for ch in value if not unicodedata.combining(ch))
     value = value.lower()
-    value = re.sub(r"[^a-z0-9]+", " ", value)
-    return value.strip()
+    value = re.sub(r"[^a-z0-9]+", " ", value).strip()
+    stripped = _KEY_PREFIX_RE.sub("", value)
+    return stripped or value      # tránh khoá rỗng nếu cả chuỗi chỉ là 'benh'

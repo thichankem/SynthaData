@@ -1,0 +1,14 @@
+# Bí mật
+.env
+keys.txt
+
+# Dữ liệu sinh ra
+output/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
