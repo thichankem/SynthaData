@@ -52,7 +52,9 @@ Hard rules:
 - Be factually accurate and concrete. NO placeholders, NO "N/A", NO empty strings.
 - Every record must be clearly distinct from the others in this batch.
 - Keep each text field concise but informative (about 1-3 sentences).
-- For enum fields, pick exactly one allowed value.
+- For enum fields, copy ONE of the listed allowed values EXACTLY as written
+  (verbatim, in its original language — do NOT translate or rephrase it),
+  even though the other text fields are written in {domain.language}.
 {avoid_block}
 Return ONE JSON object of this exact shape and NOTHING else:
 {{"records": [ {{ ...one object per record using the keys above... }} ]}}"""
