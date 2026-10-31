@@ -1,337 +1,337 @@
 # SynthaData
 
-Phần mềm **sinh dữ liệu tổng hợp** (synthetic data) chất lượng cao, xuất ra
-bảng **CSV** để huấn luyện các model AI khác. Kiến trúc nhiều lớp, hỗ trợ **2
-trường hợp**:
+<p align="center">
+  <img src="synthadata.ico" alt="SynthaData Logo" width="96" height="96">
+</p>
 
-1. **Gọi API ngoài** — OpenAI (và mọi endpoint tương thích OpenAI: OpenRouter,
-   Together, vLLM, LM Studio…) hoặc **Anthropic (Claude)**.
-2. **Chạy offline** bằng **Ollama** ngay trên máy (không cần mạng, không tốn phí).
+<p align="center">
+  <strong>Hệ thống sinh dữ liệu tổng hợp (Synthetic Data) chất lượng cao chuẩn công nghiệp</strong><br>
+  Kiểm tra chất lượng (QA) liên tục • Chống trùng lặp ngữ nghĩa (Semantic Vector) • Xoay vòng & Fallback API ↔ Ollama
+</p>
 
-Có lớp **kiểm tra chất lượng (QA) chạy liên tục**: chống trùng lặp **3 tầng**
-(tuyệt đối + mờ + **NGỮ NGHĨA bằng vector**), làm sạch, validate schema, loại
-placeholder, **giám sát thời gian thực** (tỉ lệ chấp nhận, phát hiện "mode
-collapse") và **sinh thích ứng** (tự tăng nhiệt khi trùng nhiều) — sinh được
-khối lượng lớn (mặc định **≥ 1000 dòng**) bằng nhiều luồng song song.
-
-> ⚠️ **Lưu ý y khoa:** domain mẫu "các bệnh trên thế giới" chỉ phục vụ **huấn
-> luyện/giáo dục**. Dữ liệu do model sinh ra **có thể sai** — hãy kiểm chứng
-> bằng nguồn chuyên môn trước khi dùng cho mục đích thực tế. Không dùng thay
-> thế tư vấn y tế.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python Version">
+  <img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="MIT License">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/UI-Tkinter%20GUI%20%2B%20CLI-blueviolet?style=flat-square" alt="Interface">
+  <img src="https://img.shields.io/badge/Deduplication-3--Tier%20Semantic-orange?style=flat-square" alt="Deduplication">
+</p>
 
 ---
 
-## Kiến trúc các lớp
+## 📖 Mục lục
+
+- [Tổng quan](#-tổng-quan)
+- [Tính năng nổi bật](#-tính-năng-nổi-bật)
+- [Kiến trúc hệ thống](#-kiến-trúc-hệ-thống)
+- [Cài đặt](#-cài-đặt)
+- [Hướng dẫn sử dụng](#-hướng-dẫn-sử-dụng)
+  - [Giao diện đồ họa (GUI)](#giao-diện-đồ-họa-gui)
+  - [Các chế độ hoạt động (CLI Modes)](#các-chế-độ-hoạt-động-cli-modes)
+  - [Xoay vòng API & Phục hồi lỗi (Rotation & Fallback)](#xoay-vòng-api--phục-hồi-lỗi-rotation--fallback)
+- [Dây chuyền kiểm tra chất lượng (QA Pipeline)](#-dây-chuyền-kiểm-tra-chất-lượng-qa-pipeline)
+- [Cấu hình Domain dữ liệu mới](#-cấu-hình-domain-dữ-liệu-mới)
+- [Đầu ra dữ liệu & Checkpoint](#-đầu-ra-dữ-liệu--checkpoint)
+- [Kiểm thử (Testing)](#-kiểm-thử-testing)
+- [Bảo mật & Quản lý API Key](#-bảo-mật--quản-lý-api-key)
+- [Tuyên bố miễn trừ trách nhiệm (Disclaimer)](#-tuyên-bố-miễn-trừ-trách-nhiệm-disclaimer)
+- [Giấy phép (License)](#-giấy-phép-license)
+
+---
+
+## 🌟 Tổng quan
+
+**SynthaData** là công cụ mã nguồn mở chuyên dụng cho việc **sinh dữ liệu tổng hợp (synthetic data)** có độ phong phú cao, phục vụ tiền xử lý và huấn luyện các mô hình Machine Learning / LLM. Dữ liệu được xuất ra định dạng **CSV** tiêu chuẩn (tương thích hoàn hảo với Excel và các thư viện phân tích dữ liệu như Pandas).
+
+Hệ thống hỗ trợ linh hoạt 2 môi trường:
+1. **API đám mây:** Hỗ trợ OpenAI, Anthropic (Claude), Google Gemini, Groq, OpenRouter, Cerebras, Together, DeepSeek, Mistral, xAI...
+2. **Offline cục bộ:** Sử dụng **Ollama** trực tiếp trên phần cứng máy tính (hoạt động 100% không cần kết nối mạng, chi phí 0đ, bảo mật tuyệt đối dữ liệu nội bộ).
+
+---
+
+## ✨ Tính năng nổi bật
+
+- **Chống trùng lặp 3 tầng (3-Tier Deduplication):**
+  - *Tầng 1 (Exact):* So sánh khóa chuẩn hóa nhanh bằng băm.
+  - *Tầng 2 (Fuzzy Lexical):* So khớp mờ khoảng cách chuỗi (sử dụng RapidFuzz hoặc difflib).
+  - *Tầng 3 (Semantic Vector Cosine):* Vector hóa chữ ký bản ghi bằng mô hình embedding (như `bge-m3` hoặc `nomic-embed-text`) và so sánh khoảng cách Cosine, phát hiện các bản ghi trùng lặp về mặt ngữ nghĩa mà so khớp chuỗi bỏ sót (ví dụ: *"Leprosy"* vs *"Hansen's Disease"*).
+- **Điều phối sinh thích ứng (Adaptive Generation):**
+  - Tự động giám sát tỷ lệ chấp nhận theo cửa sổ trượt (*rolling window*).
+  - Tự động phát hiện hiện tượng sụp đổ phân bố (*mode collapse*).
+  - Tự động tăng nhiệt độ (*temperature boost*) khi tỷ lệ trùng lặp tăng cao để mở rộng không gian tìm kiếm.
+- **Xoay vòng API & Chống Rate-limit thông minh:**
+  - Tự động phân bổ lưu lượng trên nhiều API key hoặc nhiều nhà cung cấp khác nhau.
+  - Tự động loại bỏ key lỗi khi khởi động và chuyển đổi tức thì sang backend khác khi gặp lỗi `429` (Too Many Requests).
+- **Cơ chế Hybrid & Tự phục hồi:**
+  - Khi toàn bộ quota API trực tuyến bị cạn kiệt, hệ thống tự động fallback về mô hình Ollama offline mà không làm gián đoạn phiên làm việc.
+- **Giao diện thân thiện & Đa nền tảng:**
+  - Hỗ trợ cả **GUI Tkinter** (hỗ trợ hiển thị sắc nét DPI-aware trên Windows) lẫn **CLI** mạnh mẽ cho tự động hóa.
+  - Cơ chế **Checkpoint & Auto-resume**: Chạy lại cùng tham số sẽ tự động đọc dữ liệu cũ và sinh tiếp cho đến khi đủ số lượng.
+  - Tách riêng dữ liệu đạt chuẩn và dữ liệu bị loại (kèm chi tiết lý do từ chối vào file `*_rejects.csv`).
+
+---
+
+## 🏗 Kiến trúc hệ thống
 
 ```
 synthadata/
-├── config.py        Lớp cấu hình (provider + embedding + quality + generation + output)
-├── schema.py        Lớp định nghĩa domain / cột dữ liệu (nạp từ YAML)
-├── prompts.py       Lớp dựng prompt cho model
-├── providers/       Lớp nguồn LLM sinh văn bản (trừu tượng hoá)
-│   ├── base.py          interface chung + retry/backoff
-│   ├── openai_api.py    API ngoài tương thích OpenAI
-│   ├── anthropic_api.py API ngoài Anthropic (Claude)
-│   └── ollama.py        Ollama offline
-├── embeddings/      Lớp vector hoá văn bản (cho chống trùng NGỮ NGHĨA)
-│   ├── base.py          interface chung + retry
-│   ├── ollama_embed.py  embedding offline (nomic-embed-text…)
-│   ├── openai_embed.py  embedding qua API (text-embedding-3-small)
-│   └── hashing.py       fallback lexical (không cần model)
-├── quality/         Lớp QA dạng dây chuyền chạy LIÊN TỤC
-│   ├── checks.py        các "check" cắm-rút: Structure, Schema, Consistency…
-│   ├── dedup.py         chống trùng 3 tầng: tuyệt đối + mờ + NGỮ NGHĨA
-│   ├── monitor.py       giám sát: tỉ lệ chấp nhận, phân bố, mode-collapse
-│   └── pipeline.py      ráp checks + embedder + dedup + monitor
-├── validation.py    Làm sạch + validate schema 1 bản ghi (RecordValidator)
-├── writer.py        Lớp ghi CSV (checkpoint + file rejects)
-├── generator.py     Lớp điều phối sinh song song + sinh thích ứng
-├── cli.py           Giao diện dòng lệnh
-└── gui.py           Giao diện đồ hoạ (Tkinter) — bọc lại toàn bộ dây chuyền
+├── config.py             # Lớp cấu hình (provider, embedding, quality, generation...)
+├── schema.py             # Phân tích cú pháp schema & định nghĩa domain từ YAML
+├── prompts.py            # Dựng prompt ngữ cảnh và định dạng cho model
+├── providers/            # Trừu tượng hóa nhà cung cấp LLM
+│   ├── base.py           # Interface chung + cơ chế retry / backoff
+│   ├── openai_api.py     # Endpoint chuẩn tương thích OpenAI (Groq, Together, DeepSeek...)
+│   ├── anthropic_api.py  # Endpoint Anthropic Claude
+│   ├── ollama.py         # Endpoint Ollama offline cục bộ
+│   └── rotating.py       # Bộ điều phối xoay vòng API và failover
+├── embeddings/           # Trừu tượng hóa module Vector Embeddings
+│   ├── base.py           # Interface embedder chung
+│   ├── ollama_embed.py   # Embedding offline (bge-m3, nomic-embed-text...)
+│   ├── openai_embed.py   # Embedding qua API (text-embedding-3-small)
+│   └── hashing.py        # Fallback lexical thuần (không cần model ngoài)
+├── quality/              # Dây chuyền kiểm tra chất lượng (QA Pipeline)
+│   ├── checks.py         # Bộ quy tắc kiểm tra (Structure, Schema, Consistency...)
+│   ├── dedup.py          # Bộ lọc chống trùng lặp 3 tầng (Exact, Fuzzy, Semantic)
+│   ├── monitor.py        # Giám sát thời gian thực & phát hiện mode-collapse
+│   └── pipeline.py       # Tích hợp toàn diện các thành phần kiểm tra
+├── validation.py         # Làm sạch dữ liệu, chuẩn hóa Unicode và validate bản ghi
+├── writer.py             # Quản lý ghi file CSV, checkpoint và ghi log rejects
+├── generator.py          # Bộ điều phối sinh dữ liệu song song & thích ứng
+├── cli.py                # Giao diện dòng lệnh (CLI)
+└── gui.py                # Giao diện đồ họa (Tkinter GUI)
 ```
 
-Dây chuyền mỗi LÔ bản ghi:
+### Luồng xử lý một lô bản ghi:
 
 ```
-gọi model → trích JSON → [StructureCheck → SchemaCheck (làm sạch) → ConsistencyCheck]
-          → nhúng embedding theo lô → chống trùng 3 tầng (exact → fuzzy → semantic)
-          → ghi CSV  + cập nhật giám sát
+[Gọi Model LLM] ──> [Trích xuất JSON] ──> [StructureCheck]
+                                              │
+                                              ▼
+[Chống trùng 3 tầng] <── [Nhúng Embedding] <── [Schema & Consistency Check]
+        │
+        ├──> (Hợp lệ) ──> [Ghi CSV chính] ──> [Cập nhật giám sát chất lượng]
+        │
+        └──> (Lỗi/Trùng) ──> [Ghi vào CSV Rejects kèm mã lý do]
 ```
-
-Sai ở bước nào thì bị loại và ghi lý do vào file `*_rejects.csv`. Muốn thêm luật
-kiểm tra mới chỉ cần viết một lớp `Check` rồi đăng ký vào pipeline — không đụng
-phần lõi.
 
 ---
 
-## Cài đặt
+## 💻 Cài đặt
 
-Yêu cầu Python 3.9+ (đã kiểm thử trên 3.13). Dùng bản Python **có `pip`**
-(ví dụ Anaconda); một số bản Python tối giản trên máy không kèm pip.
+### Yêu cầu tiên quyết:
+- **Python:** Phiên bản 3.9 trở lên (đã kiểm thử thành công trên Python 3.10 - 3.13).
+- Khuyến nghị sử dụng môi trường Python tiêu chuẩn hoặc Anaconda / Miniconda.
 
-```powershell
+### Cài đặt thư viện:
+
+```bash
+git clone https://github.com/your-username/SynthaData.git
+cd SynthaData
 pip install -r requirements.txt
 ```
 
-Các gói `rapidfuzz`, `tqdm`, `python-dotenv` là tuỳ chọn — thiếu vẫn chạy được
-(tự fallback), nhưng nên cài để có chống-trùng-mờ nhanh + thanh tiến trình.
+> **Lưu ý:** Các thư viện `rapidfuzz`, `tqdm`, `python-dotenv` được thiết kế linh hoạt — nếu thiếu, hệ thống sẽ tự động fallback về thư viện chuẩn trong Python, nhưng cài đặt đầy đủ theo `requirements.txt` sẽ mang lại hiệu năng cao nhất.
 
 ---
 
-## Cách dùng
+## 🚀 Hướng dẫn sử dụng
 
-### Chế độ chạy (`--mode`) — chọn cách phối hợp API ↔ Ollama
+### Giao diện đồ họa (GUI)
 
-Đặt trong `config.yaml` (`mode: ...`), hoặc thêm cờ `--mode` khi chạy, hoặc chọn ở
-dropdown **Chế độ** trong GUI.
+Khởi động giao diện GUI trực tiếp qua dòng lệnh:
 
-| Mode | Sinh bằng | Hợp khi | Lệnh |
+```bash
+python -m synthadata --gui
+```
+
+#### Tiện ích khởi chạy nhanh trên Windows:
+- **`SynthaData-GUI.bat`**: Nhấp đúp để mở ứng dụng ngay lập tức. Bộ launcher thông minh sẽ tự dò tìm môi trường Python phù hợp trên máy.
+- **`Tao-Shortcut-Desktop.bat`**: Nhấp đúp chạy **1 lần** để tự động tạo lối tắt (shortcut) **"SynthaData GUI"** ngay trên màn hình Desktop của máy bạn, tích hợp sẵn icon và mở ẩn không hiện cửa sổ console màu đen.
+
+---
+
+### Các chế độ hoạt động (CLI Modes)
+
+Bạn có thể thiết lập chế độ qua thuộc tính `mode` trong `config.yaml` hoặc truyền cờ `--mode` trên CLI:
+
+| Chế độ (`--mode`) | Nguồn sinh chính | Trường hợp sử dụng | Ví dụ lệnh |
 |---|---|---|---|
-| `api` | API online (xoay vòng key/dịch vụ) | Có quota, cần nhanh | `--mode api` |
-| `offline` | **Ollama cục bộ** | Không mạng / hết quota / chạy thoải mái | `--mode offline` |
-| `hybrid` ⭐ | API; **hết quota tất cả → tự chuyển Ollama** | Vừa nhanh vừa không bao giờ đứng | `--mode hybrid` |
-| `augment` | API sinh "hạt giống" → **Ollama nhân bản thêm** | Tạo nhiều dữ liệu rẻ, vẫn đúng | `--mode augment --seed-rows 200` |
+| `api` | API trực tuyến (xoay vòng key) | Khi có quota, cần tốc độ sinh cực nhanh | `python -m synthadata --domain domains/diseases.yaml --mode api` |
+| `offline` | **Ollama cục bộ** | Không có mạng / hết quota / dữ liệu nội bộ | `python -m synthadata --domain domains/diseases.yaml --mode offline --offline-model gemma4:e4b` |
+| `hybrid` ⭐ *(Mặc định)* | API trực tuyến ➔ Ollama | Vừa nhanh vừa đảm bảo không gián đoạn | `python -m synthadata --domain domains/diseases.yaml --mode hybrid` |
+| `augment` | API (hạt giống) ➔ Ollama nhân bản | Tạo lượng dữ liệu lớn với chi phí tối thiểu | `python -m synthadata --domain domains/diseases.yaml --mode augment --seed-rows 200 --target 1000` |
 
-```powershell
-# 1) Full offline (không cần key, không quota) — dùng model Ollama có sẵn
-python -m synthadata --domain domains/diseases.yaml --mode offline --offline-model qwen2.5-coder:7b
+#### 1. Chạy hoàn toàn Offline với Ollama:
+```bash
+# Bước 1: Cài đặt mô hình Ollama trên máy
+ollama pull qwen2.5
 
-# 2) Hybrid (mặc định): API chạy chính, hết quota tự rớt về Ollama
-python -m synthadata --domain domains/diseases.yaml --mode hybrid
-
-# 3) Augment: 200 dòng hạt giống bằng API, phần còn lại Ollama nhân bản
-python -m synthadata --domain domains/diseases.yaml --mode augment --seed-rows 200 --target 1000
+# Bước 2: Bắt đầu sinh 1000 dòng dữ liệu
+python -m synthadata --domain domains/diseases.yaml --provider ollama --model qwen2.5 --target 1000
 ```
 
-- **Model Ollama offline** lấy từ `offline.model` trong `config.yaml` (hoặc `--offline-model`).
-  Xem model đã cài bằng `ollama list`.
-- **Chống trùng ngữ nghĩa** vẫn chạy bằng Ollama cục bộ ở mọi mode (không tốn quota).
-  Muốn *xịn hơn* cho tiếng Việt: `ollama pull bge-m3` rồi đặt `embedding.model: bge-m3`.
-- Mọi mode đều **checkpoint/resume**: chạy lại cùng lệnh sẽ sinh tiếp, tích luỹ tới đủ `--target`.
+#### 2. Chạy với API đám mây:
+```bash
+# Sử dụng OpenAI
+export OPENAI_API_KEY="sk-..."       # Trên Windows PowerShell: $env:OPENAI_API_KEY="sk-..."
+python -m synthadata --domain domains/diseases.yaml --provider openai --model gpt-4o-mini --target 1000
 
-### Giao diện đồ hoạ (GUI) — dễ nhất
-
-Không cần nhớ tham số dòng lệnh. GUI dùng **Tkinter** có sẵn trong Python (không
-phải cài thêm gì).
-
-```powershell
-python -m synthadata --gui        # hoặc:  python -m synthadata.gui
+# Sử dụng Anthropic Claude
+export ANTHROPIC_API_KEY="sk-ant-..." # Trên Windows PowerShell: $env:ANTHROPIC_API_KEY="sk-ant-..."
+python -m synthadata --domain domains/diseases.yaml --provider anthropic --model claude-sonnet-4-6 --target 1000
 ```
 
-**Trên Windows — double-click để mở (không cần dòng lệnh):**
+---
 
-- `SynthaData-GUI.bat` — mở GUI ngay. Launcher **tự dò Python có đủ thư viện**
-  (ưu tiên Anaconda, bỏ qua Python thiếu lib như msys2) nên **pull về máy khác vẫn chạy**.
-- **Tạo icon ngoài Desktop:** chạy `Tao-Shortcut-Desktop.bat` **một lần** → xuất hiện
-  shortcut **“SynthaData GUI”** (icon lưới xanh–tím) trên màn hình, mở app không hiện
-  cửa sổ console.
+### Xoay vòng API & Phục hồi lỗi (Rotation & Fallback)
 
-> 🖥️ **Dùng trên máy khác:** `git clone`/`git pull` repo về, cài thư viện
-> (`pip install -r requirements.txt`), rồi chạy `Tao-Shortcut-Desktop.bat`. Shortcut
-> tạo ra **trỏ đúng đường dẫn của máy đó** (file `.lnk` không commit lên git vì gắn
-> đường dẫn tuyệt đối — chỉ commit launcher `.bat`/`.vbs` + `synthadata.ico` để tái tạo).
+Để tránh bị ngắt quãng do giới hạn tốc độ (Rate Limit) của gói miễn phí, SynthaData hỗ trợ 2 cơ chế xoay vòng song song:
 
-Cửa sổ cho phép chọn file domain, đổi provider/model, đặt số dòng cần sinh, bật/tắt
-chống trùng ngữ nghĩa… rồi bấm **Bắt đầu sinh**. Có **thanh tiến trình**, **log thời
-gian thực**, nút **Kiểm tra (dry-run)** để thử cấu hình, và nút **Dừng** an toàn giữa
-chừng. Form được nạp sẵn giá trị mặc định từ `config.yaml`.
-
-- **Chọn model Ollama có sẵn:** khi provider là `ollama`, ô *Model* là một dropdown
-  tự **liệt kê các model đã cài trên máy** (gọi `GET /api/tags`). Bấm nút **⟳** để
-  nạp lại sau khi `ollama pull` thêm model. Với `openai`/`anthropic`, dropdown gợi ý
-  sẵn vài model thông dụng (vẫn gõ tay được).
-- **Giao diện sắc nét:** bật DPI-aware trên Windows (hết mờ trên màn hình tỉ lệ
-  125%/150%) + theme phẳng, font Segoe UI.
-
-### Trường hợp 2 — Ollama offline (mặc định, không cần key)
-
-```powershell
-# 1. Cài Ollama: https://ollama.com  rồi kéo 1 model
-ollama pull qwen2.5            # hoặc llama3.1 / mistral / gemma2 ...
-
-# 2. Sinh 1000 dòng bệnh
-python -m synthadata --domain domains/diseases.yaml `
-    --provider ollama --model qwen2.5 --target 1000
+#### Cách 1: Nhiều key cho cùng một dịch vụ
+Tạo file `.env` (từ `.env.example`) và phân tách các key bằng dấu phẩy:
+```env
+GROQ_API_KEY=gsk_key1,gsk_key2,gsk_key3
 ```
 
-### Trường hợp 1 — API ngoài
-
-```powershell
-# OpenAI (hoặc endpoint tương thích)
-$env:OPENAI_API_KEY = "sk-..."
-python -m synthadata --domain domains/diseases.yaml `
-    --provider openai --model gpt-4o-mini --target 1000
-
-# Anthropic (Claude)
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
-python -m synthadata --domain domains/diseases.yaml `
-    --provider anthropic --model claude-sonnet-4-6 --target 1000
+#### Cách 2: Phối hợp nhiều dịch vụ khác nhau
+Cấu hình danh sách trong `config.yaml` bằng các `preset` định nghĩa sẵn:
+```yaml
+provider:
+  preset: groq
+  rotation:
+    - { preset: gemini }                          # Google Gemini
+    - { preset: openrouter }                      # OpenRouter (nhiều model :free)
+    - { preset: cerebras }                        # Cerebras tốc độ cao
+    - { preset: deepseek, model: deepseek-chat }  # DeepSeek
 ```
 
-> Mẹo: tạo file `.env` (copy từ `.env.example`) để khỏi gõ key mỗi lần.
+Các preset có sẵn: `groq`, `gemini`, `openrouter`, `cerebras`, `together`, `deepseek`, `mistral`, `xai`, `fireworks`, `perplexity`, `openai`, `anthropic`, `ollama`.
 
-### Xoay vòng API (né rate-limit của bản free)
+---
 
-Gom **nhiều key** hoặc **nhiều dịch vụ** rồi luân phiên: mỗi key chỉ gánh ~1/N
-lưu lượng (ít chạm giới hạn), và khi một backend lỗi/`429` thì **tự nhảy ngay**
-sang cái khác. Tự bật khi có ≥2 backend — không cần cờ gì thêm.
+## 🛡️ Dây chuyền kiểm tra chất lượng (QA Pipeline)
 
-- **Nhiều key cùng dịch vụ** — chỉ cần nhét vào 1 biến trong `.env`, ngăn bởi dấu phẩy:
-
-  ```bash
-  GROQ_API_KEY=gsk_key1,gsk_key2,gsk_key3
-  ```
-
-- **Nhiều dịch vụ chatbot khác nhau** — khai báo `rotation` trong `config.yaml`,
-  gọi mỗi dịch vụ theo **tên `preset`** (khỏi nhớ URL), chỉ cần đặt key vào `.env`:
-
+Hệ thống tích hợp quy trình lọc và chuẩn hóa dữ liệu tự động theo thời gian thực:
+- **Chuẩn hóa chuỗi:** Chuyển đổi Unicode NFC, gộp khoảng trắng thừa, loại bỏ ký tự điều khiển và ngoặc kép vô hiệu.
+- **Schema Validation:** Đảm bảo đủ các trường bắt buộc, kiểm tra kiểu dữ liệu (text, number, enum, boolean) và giới hạn độ dài.
+- **Loại bỏ Placeholder:** Tự động phát hiện và loại bỏ các giá trị vô nghĩa (`N/A`, `unknown`, `null`, `...`, `lorem ipsum`).
+- **Chống trùng lặp đa tầng:** So sánh chính xác ➔ So khớp mờ ➔ So sánh Cosine khoảng cách ngữ nghĩa vector.
+- **Cấu hình Vector Embedding:**
   ```yaml
-  provider:
-    preset: groq               # = type/base_url/api_key_env/model của Groq
-    rotation:
-      - { preset: gemini }                       # Google Gemini
-      - { preset: openrouter }                   # OpenRouter (nhiều model :free)
-      - { preset: cerebras }                     # Cerebras
-      - { preset: deepseek, model: deepseek-chat }   # đổi model tuỳ ý
-      - { api_key_env: GROQ_API_KEY_2 }          # hoặc chỉ thêm 1 key Groq nữa
+  embedding:
+    type: ollama                 # ollama | openai | hashing | none
+    model: bge-m3                # ollama pull bge-m3 (hoặc nomic-embed-text)
+    fallback_to_hashing: true    # Tự động lùi về hashing nếu model gặp sự cố
   ```
 
-  **Preset có sẵn:** `groq`, `gemini`, `openrouter`, `cerebras`, `together`,
-  `deepseek`, `mistral`, `xai` (Grok), `fireworks`, `perplexity`, `openai`,
-  `anthropic` (Claude), `ollama`. Trộn lẫn thoải mái — kể cả Claude (giao thức
-  riêng) chung một vòng với các API tương thích OpenAI. Khai báo tường minh
-  (`model`, `api_key_env`…) luôn **đè lên** giá trị của preset; dịch vụ nào không
-  nhận JSON-mode thì đặt `json_mode: false`.
-
-Lúc khởi động, các key/endpoint hỏng (sai key…) bị **loại khỏi vòng**, chỉ giữ cái
-sống. Embedding vẫn chạy riêng (nên để local Ollama `nomic-embed-text` cho free).
-
-### Các tham số CLI hữu ích
-
-| Tham số | Ý nghĩa |
-|---|---|
-| `--target N` | số dòng cần sinh (mặc định 1000) |
-| `--batch-size N` | số bản ghi xin model mỗi lần gọi |
-| `--workers N` | số luồng gọi song song (giảm nếu máy yếu) |
-| `--temperature T` | cao → đa dạng hơn, ít trùng hơn |
-| `--out PATH` | đường dẫn CSV đầu ra |
-| `--embed-provider` | nguồn embedding: `ollama`/`openai`/`hashing`/`none` |
-| `--embed-model` | model embedding (vd `nomic-embed-text`) |
-| `--no-semantic` | tắt chống trùng ngữ nghĩa |
-| `--no-resume` | ghi đè file cũ thay vì chạy tiếp |
-| `--dry-run` | chỉ kiểm tra cấu hình + provider + embedder rồi thoát |
-
-Mọi tham số cũng đặt được trong `config.yaml`. CLI ưu tiên hơn config.
-
 ---
 
-## Kiểm tra (smoke test)
+## 📝 Cấu hình Domain dữ liệu mới
 
-Chạy thử toàn bộ dây chuyền **không cần mạng** (dùng provider giả lập):
-
-```powershell
-python -m tests.test_pipeline
-```
-
-Test xác minh: CSV đủ dòng, **không trùng**, không placeholder, và QA loại đúng
-các bản ghi lỗi đã cài sẵn.
-
----
-
-## Tự tạo domain mới
-
-Chỉ cần viết 1 file YAML (xem `domains/diseases.yaml` làm mẫu). Ví dụ sinh dữ
-liệu "sản phẩm thương mại điện tử", "câu hỏi–đáp", "giao dịch ngân hàng"…:
+Để định nghĩa một chủ đề dữ liệu mới, bạn chỉ cần tạo một file YAML trong thư mục `domains/` (tham khảo `domains/diseases.yaml`):
 
 ```yaml
-name: products
-topic: Real-world consumer electronics products with realistic specs.
-language: Vietnamese          # ngôn ngữ cho các trường text
-dedup_key: product_name       # cột chống trùng
-facets:                       # các lát cắt để bao phủ rộng, ít trùng
+name: consumer_electronics
+topic: Real-world consumer electronic devices with accurate technical specs.
+language: Vietnamese
+dedup_key: product_name
+
+facets:
   - Điện thoại thông minh
-  - Laptop
-  - Tai nghe
+  - Laptop văn phòng & gaming
+  - Tai nghe không dây
+
 columns:
   - name: product_name
-    description: Tên sản phẩm.
+    type: text
+    description: Tên thương mại của sản phẩm.
     required: true
     max_len: 120
-  - name: price_usd
+
+  - name: release_year
     type: number
-    description: Giá tham khảo theo USD.
+    description: Năm ra mắt sản phẩm (2018 - 2026).
+    min: 2018
+    max: 2026
+
   - name: category
     type: enum
-    enum: ["phone", "laptop", "audio"]
-```
+    description: Phân loại sản phẩm.
+    enum: ["smartphone", "laptop", "audio", "accessory"]
 
-Các kiểu cột: `text`, `number`, `enum` (kèm `enum: [...]`), `bool`. Mỗi cột có
-`required`, `min_len`, `max_len`.
+  - name: description
+    type: text
+    description: Mô tả ngắn gọn tính năng nổi bật.
+    min_len: 20
+    max_len: 500
+```
 
 ---
 
-## Lớp kiểm tra chất lượng (QA) — chạy liên tục
+## 💾 Đầu ra dữ liệu & Checkpoint
 
-Mọi check chạy trong lúc sinh (an toàn đa luồng), loại ngay bản ghi xấu:
-
-- **Làm sạch:** chuẩn hoá Unicode (NFC), gộp khoảng trắng, bỏ ký tự điều khiển,
-  bỏ ngoặc kép dư.
-- **Validate schema:** đủ trường bắt buộc, đúng kiểu (số/enum), trong giới hạn
-  độ dài (tự cắt nếu quá dài).
-- **Loại placeholder:** bắt giá trị rác `N/A`, `unknown`, `...`, `lorem ipsum`…
-- **Chống trùng 3 tầng:**
-  1. *Tuyệt đối* — so khoá đã chuẩn hoá (bỏ dấu, hạ chữ).
-  2. *Mờ (lexical)* — độ tương đồng chuỗi (rapidfuzz/difflib), ngưỡng
-     `quality.fuzzy_threshold` (0.92).
-  3. **Ngữ nghĩa (vector)** — nhúng "chữ ký" của bản ghi thành vector rồi so
-     **cosine**; ngưỡng `quality.semantic_threshold` (0.90). Đây là tầng bắt
-     được "Leprosy" vs "Hansen's Disease", "Kala-Azar" vs "Leishmaniasis"… —
-     thứ mà so chuỗi bỏ sót. (Thực nghiệm: bắt `Kala-Azar (Leishmaniasis)` ≈
-     `leishmaniasis kala azar` ở cos=0.958.)
-- **Giám sát liên tục (`QualityMonitor`):** in snapshot mỗi `monitor_every`
-  dòng — tỉ lệ chấp nhận gần đây + cảnh báo **mode-collapse** (một giá trị enum
-  chiếm ưu thế bất thường ⇒ model đang lặp).
-- **Sinh thích ứng:** khi tỉ lệ chấp nhận tụt dưới `min_rolling_accept`, tự
-  **tăng nhiệt độ** (tới `temp_max`) để đẩy đa dạng, chống "cạn" chủ đề.
-- **Báo cáo:** cuối phiên in số dòng nhận/loại theo từng lý do + cảnh báo lệch.
-
-### Cấu hình embedding (cho tầng ngữ nghĩa)
-
-```yaml
-embedding:
-  type: ollama                 # ollama | openai | hashing (lexical) | none
-  model: nomic-embed-text      # ollama pull nomic-embed-text
-  fallback_to_hashing: true    # embedder thật hỏng -> tự lùi về lexical
-```
-
-- **Offline:** `ollama pull nomic-embed-text` (khuyến nghị, miễn phí).
-- **API:** `type: openai`, `model: text-embedding-3-small`.
-- **Không có model:** để `type: hashing` (lexical, chạy ngay) hoặc `none` (tắt).
-- Nếu embedder thật không sẵn sàng, hệ thống **tự lùi về `hashing`** rồi vẫn
-  chạy tiếp (không làm hỏng phiên sinh).
-
-> Chỉnh `semantic_threshold` cao hơn (vd 0.94) nếu muốn GIỮ các phân nhóm gần
-> nhau (vd ung thư phổi tế bào nhỏ vs không tế bào nhỏ); thấp hơn nếu muốn gộp
-> mạnh tay hơn.
+- **`output/<tên_domain>.csv`**: File kết quả chính chứa các dòng dữ liệu sạch, mã hóa chuẩn **UTF-8 with BOM** (hiển thị tiếng Việt hoàn hảo trên Excel).
+- **`output/<tên_domain>_rejects.csv`**: File lưu các bản ghi bị loại bỏ kèm lý do chi tiết (giúp bạn tinh chỉnh prompt hoặc điều chỉnh ngưỡng kiểm tra).
+- **Checkpoint thông minh**: Nếu phiên chạy bị dừng đột ngột (tắt máy, ngắt mạng), khi chạy lại lệnh cũ hệ thống sẽ **tự động đọc dữ liệu đã sinh và tiếp tục tích lũy** cho đến khi đạt đủ mục tiêu (sử dụng cờ `--no-resume` nếu muốn ghi đè từ đầu).
 
 ---
 
-## Đầu ra
+## 🧪 Kiểm thử (Testing)
 
-- `output/<tên>.csv` — dữ liệu sạch (UTF-8 BOM, mở đúng trong Excel).
-- `output/<tên>_rejects.csv` — các bản ghi bị loại kèm **lý do** (để soi chất
-  lượng / chỉnh prompt).
-- **Checkpoint:** ghi tăng dần. Chạy lại cùng lệnh sẽ **đọc file cũ và sinh
-  tiếp** mà không trùng (trừ khi dùng `--no-resume`).
+SynthaData đi kèm bộ kiểm thử toàn diện:
+
+```bash
+# 1. Kiểm tra tính ổn định, parser JSON, validator và dedup (không cần mạng)
+python -m tests.test_stability
+
+# 2. Kiểm tra toàn bộ luồng pipeline với provider giả lập
+python -m tests.test_pipeline
+
+# 3. Kiểm tra kết nối thực tế tới các API endpoint đã cấu hình
+python -m tests.test_apis_live
+```
 
 ---
 
-## Mẹo trên Windows
+## 🔒 Bảo mật & Quản lý API Key
 
-Nếu console hiện chữ lỗi font, đặt UTF-8 trước khi chạy:
+- **Không commit API Key:** Mọi API key cần được lưu trữ trong `.env` hoặc `keys.txt`. Cả hai file này đều đã được cấu hình trong `.gitignore`.
+- **Mẫu cấu hình an toàn:** Sử dụng file `.env.example` và `keys.example.txt` làm mẫu hướng dẫn, không nhập key thật vào các file mẫu.
+- **Che giấu khóa trong log (Key Masking):** Các lệnh kiểm thử kết nối tự động che giấu ký tự bí mật của key khi in ra màn hình.
+- **Bảo mật dữ liệu với chế độ Offline:** Khi làm việc với dữ liệu nhạy cảm hoặc nội bộ, sử dụng chế độ `offline` kết hợp mô hình Ollama cục bộ để đảm bảo 100% dữ liệu không rời khỏi thiết bị cá nhân.
 
-```powershell
-$env:PYTHONUTF8 = "1"
+---
+
+## ⚠️ Tuyên bố miễn trừ trách nhiệm (Disclaimer)
+
+Dữ liệu domain mẫu y khoa (`domains/diseases.yaml`) chỉ nhằm mục đích **thử nghiệm kỹ thuật, nghiên cứu và giáo dục**. Dữ liệu do các mô hình AI tổng hợp có thể chứa thông tin không chính xác hoặc lỗi thời. **Tuyệt đối không sử dụng dữ liệu này để thay thế cho chẩn đoán y khoa, điều trị hoặc bất kỳ tư vấn y tế chuyên môn nào.**
+
+---
+
+## 📄 Giấy phép (License)
+
+Dự án được phân phối dưới giấy phép mã nguồn mở **MIT License**. Bạn có toàn quyền sử dụng, sửa đổi, phân phối cho mục đích cá nhân cũng như thương mại.
+
+```text
+MIT License
+
+Copyright (c) 2026 SynthaData Project Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
-
-(CLI đã tự ép stdout sang UTF-8 nên thường không cần, nhưng đặt thêm cho chắc.)
