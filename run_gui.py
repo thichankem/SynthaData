@@ -1,10 +1,9 @@
-"""Entrypoint để PyInstaller đóng gói thành SynthaData.exe (mở GUI)."""
+"""Entrypoint to launch the SynthaData graphical user interface (GUI)."""
 
 import os
 import sys
 
-# Khi chạy dạng .exe đóng gói, đặt thư mục làm việc về cạnh file .exe
-# để config.yaml / domains / keys.txt / output được tìm theo đường dẫn tương đối.
+# Ensure relative paths resolve accurately from project root
 if getattr(sys, "frozen", False):
     os.chdir(os.path.dirname(sys.executable))
 

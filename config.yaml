@@ -1,120 +1,85 @@
-# Cấu hình mặc định cho SynthaData.
-# Có thể ghi đè từng tham số qua tham số dòng lệnh (CLI).
+# Default configuration for SynthaData.
+# Any parameter can be overridden via CLI arguments.
 
-# ===== CHẾ ĐỘ CHẠY (đổi bằng --mode hoặc dropdown trong GUI) =====
-#   api     : chỉ dùng API online (xoay vòng nhiều key/dịch vụ). Nhanh khi còn quota.
-#   offline : chỉ dùng Ollama cục bộ. Không mạng, không quota, chạy thoải mái (chậm hơn).
-#   hybrid  : API là chính; HẾT QUOTA tất cả -> tự chuyển Ollama offline (không bao giờ đứng).
-#   augment : API sinh `generation.seed_rows` dòng "hạt giống" chất lượng -> rồi Ollama
-#             offline nhân bản thêm cho đông (rẻ, vẫn qua đủ kiểm tra đúng đắn + chống trùng).
+# ===== RUNNING MODE (set via --mode or GUI dropdown) =====
+#   api     : Online API only (rotates across keys/providers). Fastest when quota allows.
+#   offline : Local Ollama only. No internet, no quota limits, zero data leakage.
+#   hybrid  : Online API primary; falls back to Ollama if all quotas/rates are exhausted.
+#   augment : API generates high-quality seed rows -> Ollama locally expands dataset.
 mode: hybrid
 
-# Model Ollama dùng cho PHẦN OFFLINE (mode offline/hybrid/augment).
-# Nên dùng model GENERAL (gemma4:e4b, granite4.1:8b...) cho nội dung tự nhiên/y khoa.
-# Tránh model CODING (qwen2.5-coder) và REASONING (deepseek-r1, qwen3.5) — hay "chế"/chậm.
+# Model used for local OFFLINE generation (modes: offline, hybrid, augment).
+# Recommend general-purpose models (e.g. gemma4:e4b, granite4.1:8b) for natural/domain text.
 offline:
   model: gemma4:e4b
   host: http://localhost:11434
 
 provider:
-  # ===== ĐANG DÙNG: Groq — API MIỄN PHÍ, nhanh hơn Ollama local ~10 lần =====
-  #   1) Lấy key free (không cần thẻ): https://console.groq.com
-  #      -> đăng nhập Google -> mục "API Keys" -> "Create API Key" -> copy
-  #   2) Tạo file .env (copy từ .env.example) rồi dán:  GROQ_API_KEY=gsk_...
-  # Groq nói "tiếng" tương thích OpenAI nên type vẫn là "openai".
+  # ===== DEFAULT ACTIVE: Groq (Fast, generous free tier) =====
+  #   1) Get free API key: https://console.groq.com
+  #   2) Copy .env.example to .env and set: GROQ_API_KEY=gsk_...
   type: openai
-  model: llama-3.3-70b-versatile     # model free chất lượng cao trên Groq
-  api_key_env: GROQ_API_KEY          # tên biến trong .env chứa key
+  model: llama-3.3-70b-versatile
+  api_key_env: GROQ_API_KEY
   base_url: https://api.groq.com/openai/v1
-  host: http://localhost:11434       # chỉ dùng khi quay lại type: ollama
+  host: http://localhost:11434
 
-  # (Có thể thay 4 dòng trên bằng đúng một dòng:  preset: groq  — xem danh sách
-  #  preset ở cuối khối này. Khai báo tường minh luôn đè lên giá trị của preset.)
-
-  # ===== XOAY VÒNG API (gom nhiều key/dịch vụ để né rate-limit bản free) =====
-  # Cách 1 — NHIỀU KEY cùng dịch vụ: nhét nhiều key vào 1 biến trong .env, ngăn
-  #          bởi dấu phẩy. KHÔNG cần khai báo gì thêm:
-  #              GROQ_API_KEY=gsk_key1,gsk_key2,gsk_key3
-  #          -> tự xoay vòng 3 key, mỗi key gánh 1/3 lưu lượng.
+  # ===== API ROTATION (Multiple keys / multiple providers) =====
+  # Option 1: Multiple keys for the SAME provider in .env separated by commas:
+  #   GROQ_API_KEY=gsk_key1,gsk_key2,gsk_key3
   #
-  # Cách 2 — NHIỀU DỊCH VỤ chatbot khác nhau: liệt kê ở `rotation`, gọi theo TÊN
-  #          preset (khỏi nhớ URL); đặt key tương ứng vào .env. Bỏ comment để dùng:
+  # Option 2: Multiple DIFFERENT providers in rotation:
   # rotation:
-  #   - { preset: gemini }              # Google Gemini   (GEMINI_API_KEY)
-  #   - { preset: openrouter }          # OpenRouter, nhiều model :free (OPENROUTER_API_KEY)
-  #   - { preset: cerebras }            # Cerebras        (CEREBRAS_API_KEY)
-  #   - { preset: together }            # Together        (TOGETHER_API_KEY)
-  #   - { preset: gemini, model: gemini-2.5-flash }   # đổi model cũng được
-  #   - { api_key_env: GROQ_API_KEY_2 } # hoặc chỉ thêm 1 key Groq nữa (kế thừa provider chính)
+  #   - { preset: gemini }                          # Google Gemini
+  #   - { preset: openrouter }                      # OpenRouter (free models available)
+  #   - { preset: cerebras }                        # Cerebras
+  #   - { preset: together }                        # Together AI
+  #   - { preset: deepseek, model: deepseek-chat }  # DeepSeek
+  #   - { api_key_env: GROQ_API_KEY_2 }              # Additional Groq key
   #
-  # Preset có sẵn: groq, gemini, openrouter, cerebras, together, deepseek,
-  #               mistral, xai, fireworks, perplexity, openai, anthropic, ollama.
-  # Khi ≥2 backend (nhiều key hoặc có rotation) -> tự bật xoay vòng: gọi luân phiên,
-  # lỗi/429 thì nhảy NGAY sang cái khác; key sai bị loại khỏi vòng lúc khởi động.
-
-  # --- Quay lại chạy OFFLINE bằng Ollama: đổi type thành "ollama" ---
-  # type: ollama
-  # model: qwen2.5-coder:7b          # `ollama list` để xem model đã cài
-  # (khi chạy local nhớ giảm workers/batch ở mục generation bên dưới)
-
-  # --- OpenAI thật / OpenRouter / Together / vLLM ... (đều tương thích OpenAI) ---
-  # type: openai
-  # model: gpt-4o-mini
-  # api_key_env: OPENAI_API_KEY
-  # base_url: https://api.openai.com/v1
-
-  # --- Anthropic (Claude) ---
-  # type: anthropic
-  # model: claude-sonnet-4-6
-  # api_key_env: ANTHROPIC_API_KEY
+  # Available presets: groq, gemini, openrouter, cerebras, together, deepseek,
+  #                    mistral, xai, fireworks, perplexity, openai, anthropic, ollama.
 
   max_retries: 4
   timeout: 180
 
-# Embedding phục vụ CHỐNG TRÙNG NGỮ NGHĨA (chạy bằng Ollama cục bộ -> không tốn quota).
+# Embedding model for SEMANTIC VECTOR DEDUPLICATION (runs locally via Ollama).
 embedding:
-  type: ollama                 # ollama | openai | hashing (lexical) | none
-  # bge-m3: đa ngữ, TÁCH bệnh tiếng Việt tốt hơn hẳn nomic (đo thực tế: 2 bệnh
-  # khác nhau nomic chấm 0.936 -> dễ loại oan; bge-m3 chỉ 0.825 -> an toàn).
-  # Nếu chưa cài: `ollama pull bge-m3`. Muốn nhẹ hơn thì đổi về nomic-embed-text.
+  type: ollama                 # ollama | openai | hashing | none
+  # Multilingual model: bge-m3 works well across English and Vietnamese.
+  # Pull via: `ollama pull bge-m3` or use lighter `nomic-embed-text`.
   model: bge-m3
   host: http://localhost:11434
-  # Khi dùng OpenAI embeddings:
+  # When using OpenAI embeddings:
   # type: openai
   # model: text-embedding-3-small
   # api_key_env: OPENAI_API_KEY
-  fallback_to_hashing: true    # embedder thật hỏng -> tự lùi về hashing (lexical)
+  fallback_to_hashing: true    # Falls back to lexical hashing if embedder fails
 
-# Lớp kiểm tra chất lượng (QA) chạy liên tục.
+# Continuous Quality Assurance (QA) pipeline.
 quality:
-  fuzzy_threshold: 0.92        # >= -> trùng MỜ (chuỗi)
-  semantic_enabled: true       # bật chống trùng NGỮ NGHĨA (vector)
-  # 0.96: chỉ gộp bệnh GẦN TRÙNG THẬT (vd "Leprosy"≈"Hansen"). Để 0.90 sẽ loại
-  # OAN các bệnh CÙNG NHÓM nhưng khác nhau (sởi vs cúm, lưỡng cực vs trầm cảm...)
-  # vì nomic-embed cho điểm cao trên tiếng Việt -> kẹt sớm, ít dòng.
-  semantic_threshold: 0.96     # >= cosine -> trùng ngữ nghĩa
-  monitor_every: 100           # in snapshot giám sát mỗi 100 dòng nhận
-  rolling_window: 200          # cửa sổ tính tỉ lệ chấp nhận gần đây
-  adaptive: true               # tự tăng nhiệt khi tỉ lệ nhận tụt thấp
+  fuzzy_threshold: 0.92        # >= string similarity considered duplicate
+  semantic_enabled: true       # Enable semantic vector cosine deduplication
+  semantic_threshold: 0.96     # >= cosine similarity considered semantic duplicate
+  monitor_every: 100           # Print quality snapshot every N accepted records
+  rolling_window: 200          # Sliding window for rolling acceptance rate
+  adaptive: true               # Dynamically boost temperature when acceptance drops
   min_rolling_accept: 0.25
   temp_boost_step: 0.15
   temp_max: 1.3
 
 generation:
-  target_rows: 1000          # ít nhất 1000 dòng theo yêu cầu
-  # Thông số dưới đang tinh cho API Groq (nhanh, chịu song song tốt).
-  # Nếu QUAY LẠI Ollama LOCAL: giảm workers về 1-2 và batch_size về ~8.
-  batch_size: 10             # nhỏ vừa -> ít token/lần gọi, đỡ vượt rate-limit free
-  workers: 2                 # bản FREE chỉ ~12k token/phút/key: ÍT luồng để khỏi
-                             # bắn ào vượt hạn mức. Có NHIỀU key (keys.txt) thì tăng dần.
-  temperature: 0.9           # cao -> đa dạng hơn, ít trùng hơn
-  max_tokens: 4096           # rộng tay; JSON lỡ bị cắt đã có cơ chế "vớt" lại record
-  max_attempts_factor: 8.0   # trần số lần gọi an toàn (nâng vì có lần gọi phí)
-  avoid_sample_size: 60      # nhắc model các mục đã có để bớt lặp (vừa đủ, đỡ tốn token)
-  stall_rounds: 12           # kiên nhẫn hơn trước khi coi là "cạn" và dừng
+  target_rows: 1000            # Target dataset size (default 1000)
+  batch_size: 10               # Records per generation request
+  workers: 2                   # Concurrent generation threads
+  temperature: 0.9             # Generation randomness / diversity
+  max_tokens: 4096             # Max generation token allowance
+  max_attempts_factor: 8.0     # Maximum attempt multiplier before terminating
+  avoid_sample_size: 60        # Negative prompt window to prevent repeating items
+  stall_rounds: 12             # Consecutive stalled rounds before declaring exhaustion
 
 output:
   path: output/diseases.csv
-  checkpoint: true           # ghi tăng dần, an toàn khi dừng giữa chừng
-  write_rejects: true        # ghi kèm file *_rejects.csv để soi chất lượng
-  encoding: utf-8-sig        # Excel trên Windows mở đúng Unicode/tiếng Việt
+  checkpoint: true             # Incremental disk writes; safe to stop and resume
+  write_rejects: true          # Log rejected records with failure codes
+  encoding: utf-8-sig          # UTF-8 with BOM for Excel and spreadsheet viewers
